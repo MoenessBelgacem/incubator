@@ -10,11 +10,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-// @Component
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
@@ -27,13 +28,15 @@ public class DataInitializer implements CommandLineRunner {
     private final ProjectRepository projectRepository;
     private final QuestionnaireAnswerRepository answerRepository;
     private final EvaluationRepository evaluationRepository;
+    private final RoundSelectionOverrideRepository overrideRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
     public void run(String... args) {
         if (sessionRepository.count() > 0) {
-            log.info("ℹ️ Données de test déjà présentes. Suppression en cours...");
+            log.info("ℹ️ Données déjà présentes. Nettoyage...");
+            overrideRepository.deleteAll();
             answerRepository.deleteAll();
             evaluationRepository.deleteAll();
             projectRepository.deleteAll();
@@ -41,216 +44,254 @@ public class DataInitializer implements CommandLineRunner {
             questionRepository.deleteAll();
             roundRepository.deleteAll();
             sessionRepository.deleteAll();
-            // We do not delete users to avoid FK constraints with event_registrations, etc.
-            // createUser will just fetch the existing users.
         }
 
-        log.info("🌱 Initialisation du jeu de données complet et cohérent...");
-        
-        // 1. UTILISATEURS
-        User admin = createUser("Admin", "Enicarthage", "admin@enicarthage.tn", Role.ADMIN, null);
-        
-        User evalTech = createUser("Sami", "Gharbi", "sami.tech@enicarthage.tn", Role.EVALUATOR, null);
-        User evalBiz = createUser("Amira", "Trabelsi", "amira.biz@enicarthage.tn", Role.EVALUATOR, null);
-        User evalGen = createUser("Karim", "Benali", "karim.gen@enicarthage.tn", Role.EVALUATOR, null);
+        log.info("🌱 Initialisation du jeu de données complet...");
 
-        User cand1 = createUser("Youssef", "Karray", "youssef@enicarthage.tn", Role.STUDENT, "Génie Logiciel");
-        User cand2 = createUser("Fatma", "Zahra", "fatma@enicarthage.tn", Role.STUDENT, "Génie Électrique");
-        User cand3 = createUser("Ahmed", "Mansour", "ahmed@enicarthage.tn", Role.STUDENT, "Génie Industriel");
-        User cand4 = createUser("Nour", "Bouzid", "nour@enicarthage.tn", Role.STUDENT, "Télécoms");
-        User cand5 = createUser("Omar", "Jebali", "omar@enicarthage.tn", Role.STUDENT, "Génie Civil");
-        User cand6 = createUser("Ines", "Gassoumi", "ines@enicarthage.tn", Role.STUDENT, "Mécatronique");
-        User cand7 = createUser("Ali", "Trabelsi", "ali@enicarthage.tn", Role.STUDENT, "Génie Logiciel");
-        User cand8 = createUser("Mariem", "Selmi", "mariem@enicarthage.tn", Role.STUDENT, "Réseaux");
+        // ══════════════════════════════════════════════════════════════
+        // 1. USERS
+        // ══════════════════════════════════════════════════════════════
+        User admin = mkUser("Admin", "Enicarthage", "admin@enicarthage.tn", Role.ADMIN, null);
+        User evalTech = mkUser("Sami", "Gharbi", "sami.tech@enicarthage.tn", Role.EVALUATOR, null);
+        User evalBiz  = mkUser("Amira", "Trabelsi", "amira.biz@enicarthage.tn", Role.EVALUATOR, null);
+        User evalGen  = mkUser("Karim", "Benali", "karim.gen@enicarthage.tn", Role.EVALUATOR, null);
 
-        // Set d'évaluateurs
-        Set<User> allEvals = Set.of(evalTech, evalBiz, evalGen);
+        User s1 = mkUser("Youssef", "Karray",  "youssef@enicarthage.tn", Role.STUDENT, "Génie Logiciel");
+        User s2 = mkUser("Fatma",   "Zahra",   "fatma@enicarthage.tn",   Role.STUDENT, "Génie Électrique");
+        User s3 = mkUser("Ahmed",   "Mansour", "ahmed@enicarthage.tn",   Role.STUDENT, "Génie Industriel");
+        User s4 = mkUser("Nour",    "Bouzid",  "nour@enicarthage.tn",    Role.STUDENT, "Télécoms");
+        User s5 = mkUser("Omar",    "Jebali",  "omar@enicarthage.tn",    Role.STUDENT, "Génie Civil");
+        User s6 = mkUser("Ines",    "Gassoumi","ines@enicarthage.tn",    Role.STUDENT, "Mécatronique");
+        User s7 = mkUser("Ali",     "Trabelsi","ali@enicarthage.tn",     Role.STUDENT, "Génie Logiciel");
+        User s8 = mkUser("Mariem",  "Selmi",   "mariem@enicarthage.tn",  Role.STUDENT, "Réseaux");
+
+        Set<User> allEvals  = Set.of(evalTech, evalBiz, evalGen);
         Set<User> techEvals = Set.of(evalTech, evalGen);
 
-        // 2. SESSIONS & ROUNDS & QUESTIONS
-
-        // --- SESSION 1: TERMINEE (CLOSED) ---
-        Session closedSession = sessionRepository.save(Session.builder()
+        // ══════════════════════════════════════════════════════════════
+        // 2. SESSION CLOSED — fully completed, all rounds done
+        //    Tests: history, COMPLETED status, mentoring button
+        // ══════════════════════════════════════════════════════════════
+        Session sessClosed = sessionRepository.save(Session.builder()
                 .name("Bootcamp IA & Big Data 2024")
-                .description("Un programme intensif pour les solutions basées sur l'Intelligence Artificielle.")
+                .description("Programme intensif pour les solutions IA.")
                 .startDate(LocalDate.now().minusYears(1))
                 .endDate(LocalDate.now().minusMonths(6))
                 .status(SessionStatus.CLOSED).build());
 
-        Round cRound1 = roundRepository.save(Round.builder().session(closedSession).name("Sélection sur Dossier")
-                .orderIndex(1).status(RoundStatus.COMPLETED).evaluators(allEvals).passingCandidatesCount(5)
-                .juryPresident(evalTech).build());
-        Round cRound2 = roundRepository.save(Round.builder().session(closedSession).name("Pitch Final")
-                .orderIndex(2).status(RoundStatus.COMPLETED).evaluators(allEvals).passingCandidatesCount(1)
-                .juryPresident(evalBiz).build());
+        Round cR1 = roundRepository.save(Round.builder().session(sessClosed).name("Sélection sur Dossier")
+                .orderIndex(1).roundNumber(1).status(RoundStatus.COMPLETED)
+                .evaluators(allEvals).passingCandidatesCount(2)
+                .juryPresident(evalTech).selectionValidated(true).selectionFinalized(true)
+                .deadline(LocalDate.now().minusMonths(10)).build());
+        Round cR2 = roundRepository.save(Round.builder().session(sessClosed).name("Pitch Final")
+                .orderIndex(2).roundNumber(2).status(RoundStatus.COMPLETED)
+                .evaluators(allEvals).passingCandidatesCount(1)
+                .juryPresident(evalBiz).selectionValidated(true).selectionFinalized(true)
+                .deadline(LocalDate.now().minusMonths(7)).build());
 
-        addQuestions(cRound1, Arrays.asList(
+        addQs(cR1, Arrays.asList(
                 q("Nom de la solution IA", QuestionType.TEXT, true, 0, null),
-                q("Cas d'usage principal", QuestionType.TEXTAREA, true, 1, null)
-        ));
+                q("Cas d'usage principal", QuestionType.TEXTAREA, true, 1, null)));
+        addQs(cR2, Arrays.asList(
+                q("Lien Pitch Deck", QuestionType.FILE, true, 0, null),
+                q("Besoins financement", QuestionType.TEXT, true, 1, null)));
 
-        addQuestions(cRound2, Arrays.asList(
-                q("Lien de la présentation (Pitch Deck)", QuestionType.FILE, true, 0, null),
-                q("Besoins de financement estimés", QuestionType.TEXT, true, 1, null)
-        ));
+        // Youssef: COMPLETED (winner) — all evals by all 3 evaluators in both rounds
+        Application a1 = applicationRepository.save(Application.builder()
+                .session(sessClosed).candidate(s1).currentRound(cR2)
+                .status(ApplicationStatus.COMPLETED).build());
+        Project p1 = projectRepository.save(Project.builder()
+                .title("DataMind AI").description("Analyse prédictive industrie 4.0.")
+                .domain("IA").githubUrl("https://github.com/youssef/datamind")
+                .owner(s1).round(cR2).status(ProjectStatus.ACCEPTED)
+                .submittedAt(LocalDateTime.now().minusMonths(7)).build());
+        eval(a1, p1, evalTech, cR1, 85, "Excellent concept technique.");
+        eval(a1, p1, evalBiz,  cR1, 78, "Business model prometteur.");
+        eval(a1, p1, evalGen,  cR1, 82, "Bon potentiel global.");
+        eval(a1, p1, evalTech, cR2, 90, "Prototype impressionnant.");
+        eval(a1, p1, evalBiz,  cR2, 92, "Marché porteur, pitch convaincant.");
+        eval(a1, p1, evalGen,  cR2, 88, "Projet mûr pour l'incubation.");
 
-        // --- SESSION 2: EN COURS (IN_PROGRESS) ---
-        Session activeSession = sessionRepository.save(Session.builder()
+        // Fatma: ELIMINATED at Round 2 — fully evaluated both rounds
+        Application a2 = applicationRepository.save(Application.builder()
+                .session(sessClosed).candidate(s2).currentRound(cR2)
+                .status(ApplicationStatus.ELIMINATED_ROUND_2).build());
+        Project p2 = projectRepository.save(Project.builder()
+                .title("ChatBot HR").description("Assistant RH virtuel.")
+                .domain("IA & RH").owner(s2).round(cR2).status(ProjectStatus.REJECTED)
+                .submittedAt(LocalDateTime.now().minusMonths(8)).build());
+        eval(a2, p2, evalTech, cR1, 70, "Intéressant mais manque de détails.");
+        eval(a2, p2, evalBiz,  cR1, 65, "Marché saturé.");
+        eval(a2, p2, evalGen,  cR1, 72, "Passe avec réserve.");
+        eval(a2, p2, evalTech, cR2, 45, "Architecture non viable.");
+        eval(a2, p2, evalBiz,  cR2, 40, "Business case faible.");
+        eval(a2, p2, evalGen,  cR2, 50, "Éliminé.");
+
+        // ══════════════════════════════════════════════════════════════
+        // 3. SESSION IN_PROGRESS — R1 done, R2 active, R3 upcoming
+        //    Tests: eval workflow, fullyEvaluated check, admin override,
+        //           jury president results, round final badge
+        // ══════════════════════════════════════════════════════════════
+        Session sessActive = sessionRepository.save(Session.builder()
                 .name("Incubation GreenTech 2025")
-                .description("Accompagnement des startups à impact environnemental et énergétique.")
+                .description("Accompagnement startups à impact environnemental.")
                 .startDate(LocalDate.now().minusMonths(2))
                 .endDate(LocalDate.now().plusMonths(3))
                 .status(SessionStatus.IN_PROGRESS).build());
 
-        Round aRound1 = roundRepository.save(Round.builder().session(activeSession).name("Évaluation du Concept")
-                .orderIndex(1).status(RoundStatus.COMPLETED).evaluators(allEvals).passingCandidatesCount(4)
-                .juryPresident(evalGen).build());
-        Round aRound2 = roundRepository.save(Round.builder().session(activeSession).name("Prototype Technique")
-                .orderIndex(2).status(RoundStatus.ACTIVE).evaluators(techEvals).passingCandidatesCount(2)
-                .juryPresident(evalTech).build());
-        Round aRound3 = roundRepository.save(Round.builder().session(activeSession).name("Go To Market")
-                .orderIndex(3).status(RoundStatus.UPCOMING).evaluators(Set.of(evalBiz)).passingCandidatesCount(1)
-                .juryPresident(evalBiz).build());
+        Round aR1 = roundRepository.save(Round.builder().session(sessActive).name("Évaluation du Concept")
+                .orderIndex(1).roundNumber(1).status(RoundStatus.COMPLETED)
+                .evaluators(allEvals).passingCandidatesCount(4)
+                .juryPresident(evalGen).selectionValidated(true).selectionFinalized(true)
+                .deadline(LocalDate.now().minusMonths(1)).build());
+        Round aR2 = roundRepository.save(Round.builder().session(sessActive).name("Prototype Technique")
+                .orderIndex(2).roundNumber(2).status(RoundStatus.ACTIVE)
+                .evaluators(techEvals).passingCandidatesCount(2)
+                .juryPresident(evalTech)
+                .deadline(LocalDate.now().plusDays(14)).build());
+        Round aR3 = roundRepository.save(Round.builder().session(sessActive).name("Go To Market")
+                .orderIndex(3).roundNumber(3).status(RoundStatus.UPCOMING)
+                .evaluators(Set.of(evalBiz)).passingCandidatesCount(1)
+                .juryPresident(evalBiz)
+                .deadline(LocalDate.now().plusMonths(2)).build());
 
-        addQuestions(aRound1, Arrays.asList(
+        addQs(aR1, Arrays.asList(
                 q("Titre du projet GreenTech", QuestionType.TEXT, true, 0, null),
-                q("Description de l'impact écologique", QuestionType.TEXTAREA, true, 1, null),
-                q("Technologie clé", QuestionType.RADIO, true, 2, "IoT, Matériaux, Énergie renouvelable, Autre")
-        ));
-        
-        addQuestions(aRound2, Arrays.asList(
-                q("Lien Démo / Vidéo", QuestionType.VIDEO_URL, false, 0, null)
-        ));
-        
-        addQuestions(aRound3, Arrays.asList(
-                q("Stratégie d'acquisition client", QuestionType.TEXTAREA, true, 0, null),
-                q("Canaux de distribution envisagés", QuestionType.CHECKBOX, true, 1, "B2B Direct, Partenariats, Réseaux Sociaux, Autre")
-        ));
+                q("Impact écologique", QuestionType.TEXTAREA, true, 1, null),
+                q("Technologie clé", QuestionType.RADIO, true, 2, "IoT,Matériaux,Énergie renouvelable,Autre")));
+        addQs(aR2, Arrays.asList(
+                q("Lien Démo / Vidéo", QuestionType.VIDEO_URL, false, 0, null)));
+        addQs(aR3, Arrays.asList(
+                q("Stratégie acquisition client", QuestionType.TEXTAREA, true, 0, null),
+                q("Canaux de distribution", QuestionType.CHECKBOX, true, 1, "B2B Direct,Partenariats,Réseaux Sociaux,Autre")));
 
-        // --- SESSION 3: OUVERTE (OPEN) ---
-        Session openSession = sessionRepository.save(Session.builder()
+        List<SessionQuestion> gQ1 = questionRepository.findByRoundIdOrderByOrderIndexAsc(aR1.getId());
+        List<SessionQuestion> gQ2 = questionRepository.findByRoundIdOrderByOrderIndexAsc(aR2.getId());
+
+        // Ahmed: ACCEPTED_ROUND_2 — fully evaluated by both techEvals in R2
+        //   → Tests: fullyEvaluated = true, admin can accept
+        Application a3 = applicationRepository.save(Application.builder()
+                .session(sessActive).candidate(s3).currentRound(aR2)
+                .status(ApplicationStatus.ACCEPTED_ROUND_2).build());
+        answer(a3, gQ1.get(0), "SolarFlow"); answer(a3, gQ1.get(1), "Panneaux solaires optimisés.");
+        answer(a3, gQ1.get(2), "Énergie renouvelable");
+        answer(a3, gQ2.get(0), "https://youtube.com/solarflow");
+        Project p3 = projectRepository.save(Project.builder()
+                .title("SolarFlow").description("Monitoring solaire intelligent.")
+                .domain("Énergie").githubUrl("https://github.com/ahmed/solarflow")
+                .owner(s3).round(aR2).status(ProjectStatus.UNDER_REVIEW)
+                .submittedAt(LocalDateTime.now().minusDays(2)).build());
+        // R1 evals (all 3)
+        eval(a3, p3, evalTech, aR1, 80, "Bon potentiel technique.");
+        eval(a3, p3, evalBiz,  aR1, 75, "Marché niche mais viable.");
+        eval(a3, p3, evalGen,  aR1, 78, "Concept solide.");
+        // R2 evals (both techEvals → fullyEvaluated = true)
+        eval(a3, p3, evalTech, aR2, 85, "Prototype fonctionnel et bien conçu.");
+        eval(a3, p3, evalGen,  aR2, 82, "Bonne démonstration technique.");
+
+        // Nour: ACCEPTED_ROUND_2 — only 1 of 2 techEvals evaluated in R2
+        //   → Tests: fullyEvaluated = false (1/2), admin CANNOT accept
+        Application a4 = applicationRepository.save(Application.builder()
+                .session(sessActive).candidate(s4).currentRound(aR2)
+                .status(ApplicationStatus.ACCEPTED_ROUND_2).build());
+        answer(a4, gQ1.get(0), "EcoTrack"); answer(a4, gQ1.get(1), "Suivi consommation carbone.");
+        answer(a4, gQ1.get(2), "Autre");
+        Project p4 = projectRepository.save(Project.builder()
+                .title("EcoTrack App").description("App mobile tracking carbone.")
+                .domain("Mobile & Écologie").owner(s4).round(aR2).status(ProjectStatus.ACCEPTED)
+                .submittedAt(LocalDateTime.now().minusDays(5)).build());
+        // R1 evals (all 3)
+        eval(a4, p4, evalTech, aR1, 88, "Excellent concept.");
+        eval(a4, p4, evalBiz,  aR1, 90, "Business model très clair.");
+        eval(a4, p4, evalGen,  aR1, 85, "Potentiel énorme.");
+        // R2 evals (only evalTech, missing evalGen → fullyEvaluated = false)
+        eval(a4, p4, evalTech, aR2, 78, "Prototype correct mais manque de polish.");
+
+        // Omar: ACCEPTED_ROUND_2 — NO evaluations yet in R2
+        //   → Tests: fullyEvaluated = false (0/2), eval buttons active
+        Application a5 = applicationRepository.save(Application.builder()
+                .session(sessActive).candidate(s5).currentRound(aR2)
+                .status(ApplicationStatus.ACCEPTED_ROUND_2).build());
+        answer(a5, gQ1.get(0), "WindTech"); answer(a5, gQ1.get(1), "Micro-éoliennes urbaines.");
+        answer(a5, gQ1.get(2), "Énergie renouvelable");
+        // R1 evals only
+        eval(a5, null, evalTech, aR1, 72, "Concept original mais faisabilité incertaine.");
+        eval(a5, null, evalBiz,  aR1, 68, "Marché difficile.");
+        eval(a5, null, evalGen,  aR1, 74, "Passe avec réserve.");
+
+        // Ines: ELIMINATED_ROUND_1
+        //   → Tests: history preserved, no eval buttons
+        Application a6 = applicationRepository.save(Application.builder()
+                .session(sessActive).candidate(s6).currentRound(aR1)
+                .status(ApplicationStatus.ELIMINATED_ROUND_1).build());
+        answer(a6, gQ1.get(0), "GreenPlast"); answer(a6, gQ1.get(1), "Recyclage plastique.");
+        eval(a6, null, evalTech, aR1, 40, "Trop vague techniquement.");
+        eval(a6, null, evalBiz,  aR1, 35, "Pas de business model.");
+        eval(a6, null, evalGen,  aR1, 42, "Éliminé.");
+
+        // ══════════════════════════════════════════════════════════════
+        // 4. SESSION OPEN — Round 1 active, candidates applying
+        //    Tests: PENDING status, student submission, UPCOMING round
+        // ══════════════════════════════════════════════════════════════
+        Session sessOpen = sessionRepository.save(Session.builder()
                 .name("FinTech Challenge Automne")
-                .description("Postulez avec vos idées innovantes pour la finance de demain.")
+                .description("Idées innovantes pour la finance de demain.")
                 .startDate(LocalDate.now().minusDays(5))
                 .endDate(LocalDate.now().plusMonths(2))
                 .status(SessionStatus.OPEN).build());
 
-        Round oRound1 = roundRepository.save(Round.builder().session(openSession).name("Phase d'Inscription")
-                .orderIndex(1).status(RoundStatus.ACTIVE).evaluators(allEvals).passingCandidatesCount(10)
-                .juryPresident(evalGen).build());
+        Round oR1 = roundRepository.save(Round.builder().session(sessOpen).name("Phase d'Inscription")
+                .orderIndex(1).roundNumber(1).status(RoundStatus.ACTIVE)
+                .evaluators(allEvals).passingCandidatesCount(3)
+                .juryPresident(evalGen)
+                .deadline(LocalDate.now().plusDays(30)).build());
+        Round oR2 = roundRepository.save(Round.builder().session(sessOpen).name("Pitch Day")
+                .orderIndex(2).roundNumber(2).status(RoundStatus.UPCOMING)
+                .evaluators(techEvals).passingCandidatesCount(1)
+                .juryPresident(evalTech)
+                .deadline(LocalDate.now().plusMonths(2)).build());
 
-        addQuestions(oRound1, Arrays.asList(
-                q("Nom de la startup FinTech", QuestionType.TEXT, true, 0, null),
+        addQs(oR1, Arrays.asList(
+                q("Nom startup FinTech", QuestionType.TEXT, true, 0, null),
                 q("Problème résolu", QuestionType.TEXTAREA, true, 1, null),
-                q("Marché ciblé", QuestionType.CHECKBOX, true, 2, "B2B, B2C, B2B2C, Institutionnel")
-        ));
+                q("Marché ciblé", QuestionType.CHECKBOX, true, 2, "B2B,B2C,B2B2C,Institutionnel")));
+        addQs(oR2, Arrays.asList(
+                q("Lien présentation", QuestionType.FILE, true, 0, null)));
 
+        List<SessionQuestion> fQ = questionRepository.findByRoundIdOrderByOrderIndexAsc(oR1.getId());
 
-        // 3. CANDIDATURES ET PROJETS
+        // Ali: PENDING — just applied, waiting for acceptance
+        Application a7 = applicationRepository.save(Application.builder()
+                .session(sessOpen).candidate(s7).currentRound(oR1)
+                .status(ApplicationStatus.PENDING).build());
+        answer(a7, fQ.get(0), "PaySmart"); answer(a7, fQ.get(1), "Paiement QR Code innovant.");
+        answer(a7, fQ.get(2), "B2C,B2B");
 
-        // ---- Candidats Session CLOSED ----
-        // Youssef: Gagnant (COMPLETED)
-        Application app1 = applicationRepository.save(Application.builder()
-                .session(closedSession).candidate(cand1).currentRound(cRound2).status(ApplicationStatus.COMPLETED).build());
-        Project proj1 = projectRepository.save(Project.builder()
-                .title("DataMind AI").description("Analyse prédictive pour l'industrie 4.0.")
-                .domain("IA & Industrie").githubUrl("https://github.com/youssef/datamind")
-                .owner(cand1).round(cRound2).status(ProjectStatus.ACCEPTED).submittedAt(LocalDate.now().minusMonths(7).atStartOfDay()).build());
-        
-        evaluationRepository.save(Evaluation.builder()
-                .application(app1).project(proj1).evaluator(evalTech).round(cRound1)
-                .score(85).comment("Très bonne idée, équipe solide.").recommendation("Passe au round suivant.")
-                .build());
-        evaluationRepository.save(Evaluation.builder()
-                .application(app1).project(proj1).evaluator(evalBiz).round(cRound2)
-                .score(92).comment("Excellent business plan. Marché porteur.").recommendation("Accepter le projet en incubation.")
-                .build());
+        // Mariem: REJECTED — invalid application
+        Application a8 = applicationRepository.save(Application.builder()
+                .session(sessOpen).candidate(s8).currentRound(null)
+                .status(ApplicationStatus.REJECTED).build());
+        answer(a8, fQ.get(0), "Test App"); answer(a8, fQ.get(1), "Rien");
 
-        // Fatma: Eliminée au Round 2
-        Application app2 = applicationRepository.save(Application.builder()
-                .session(closedSession).candidate(cand2).currentRound(cRound2).status(ApplicationStatus.ELIMINATED_ROUND_2).build());
-        Project proj2 = projectRepository.save(Project.builder()
-                .title("ChatBot HR").description("Assistant RH virtuel pour le recrutement.")
-                .domain("IA & RH").owner(cand2).round(cRound2).status(ProjectStatus.REJECTED).submittedAt(LocalDate.now().minusMonths(8).atStartOfDay()).build());
-        
-        evaluationRepository.save(Evaluation.builder()
-                .application(app2).project(proj2).evaluator(evalGen).round(cRound1)
-                .score(70).comment("Projet intéressant mais manque de détails techniques.").recommendation("Passe au round suivant avec réserve.")
-                .build());
-        evaluationRepository.save(Evaluation.builder()
-                .application(app2).project(proj2).evaluator(evalTech).round(cRound2)
-                .score(45).comment("L'architecture proposée n'est pas viable.").recommendation("Éliminer.")
-                .build());
-
-        // ---- Candidats Session IN_PROGRESS ----
-        List<SessionQuestion> greenQs1 = questionRepository.findByRoundIdOrderByOrderIndexAsc(aRound1.getId());
-        List<SessionQuestion> greenQs2 = questionRepository.findByRoundIdOrderByOrderIndexAsc(aRound2.getId());
-
-        // Ahmed: Accepté au Round 2, Projet soumis, En cours de revue
-        Application app3 = applicationRepository.save(Application.builder()
-                .session(activeSession).candidate(cand3).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
-        answer(app3, greenQs1.get(0), "SolarFlow"); answer(app3, greenQs1.get(1), "Optimisation des panneaux solaires.");
-        answer(app3, greenQs1.get(2), "Énergie renouvelable");
-        // Also answered round 2 video
-        answer(app3, greenQs2.get(0), "https://youtube.com/solarflow");
-        Project proj3 = projectRepository.save(Project.builder()
-                .title("SolarFlow").description("Tableau de bord de monitoring solaire.")
-                .domain("Énergie").githubUrl("https://github.com/ahmed/solarflow")
-                .owner(cand3).round(aRound2).status(ProjectStatus.UNDER_REVIEW).submittedAt(LocalDate.now().minusDays(2).atStartOfDay()).build());
-        
-        evaluationRepository.save(Evaluation.builder()
-                .application(app3).project(proj3).evaluator(evalTech).round(aRound1)
-                .score(80).comment("Bon potentiel technique, le MVP est clair.").recommendation("Accepter pour la phase de prototypage.")
-                .build());
-
-        // Nour: Accepté au Round 2, Projet soumis, Déjà accepté
-        Application app4 = applicationRepository.save(Application.builder()
-                .session(activeSession).candidate(cand4).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
-        answer(app4, greenQs1.get(0), "EcoTrack"); answer(app4, greenQs1.get(1), "Suivi de la consommation carbone personnelle.");
-        answer(app4, greenQs1.get(2), "Autre");
-        Project proj4 = projectRepository.save(Project.builder()
-                .title("EcoTrack App").description("App mobile de tracking carbone.")
-                .domain("Mobile & Écologie").owner(cand4).round(aRound2).status(ProjectStatus.ACCEPTED).submittedAt(LocalDate.now().minusDays(5).atStartOfDay()).build());
-        
-        evaluationRepository.save(Evaluation.builder()
-                .application(app4).project(proj4).evaluator(evalBiz).round(aRound1)
-                .score(88).comment("Business model très clair et acquisition utilisateur bien pensée.").recommendation("Accepter.")
-                .build());
-
-        // Omar: Accepté au Round 2, Projet NON encore soumis
-        Application app5 = applicationRepository.save(Application.builder()
-                .session(activeSession).candidate(cand5).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
-        answer(app5, greenQs1.get(0), "WindTech"); answer(app5, greenQs1.get(1), "Micro-éoliennes urbaines.");
-        answer(app5, greenQs1.get(2), "Énergie renouvelable");
-
-        // Ines: Eliminée au Round 1
-        Application app6 = applicationRepository.save(Application.builder()
-                .session(activeSession).candidate(cand6).currentRound(aRound1).status(ApplicationStatus.ELIMINATED_ROUND_1).build());
-        answer(app6, greenQs1.get(0), "GreenPlast"); answer(app6, greenQs1.get(1), "Recyclage plastique.");
-        
-        // ---- Candidats Session OPEN ----
-        List<SessionQuestion> finQs = questionRepository.findByRoundIdOrderByOrderIndexAsc(oRound1.getId());
-
-        // Ali: En attente (vient de postuler)
-        Application app7 = applicationRepository.save(Application.builder()
-                .session(openSession).candidate(cand7).currentRound(null).status(ApplicationStatus.PENDING).build());
-        answer(app7, finQs.get(0), "PaySmart"); answer(app7, finQs.get(1), "Paiement sans contact par QR Code innovant.");
-        answer(app7, finQs.get(2), "B2C, B2B");
-
-        // Mariem: Rejetée directement (dossier invalide)
-        Application app8 = applicationRepository.save(Application.builder()
-                .session(openSession).candidate(cand8).currentRound(null).status(ApplicationStatus.REJECTED).build());
-        answer(app8, finQs.get(0), "Test App"); answer(app8, finQs.get(1), "Rien pour l'instant");
-
-        log.info("✅ Jeu de données de test créé avec succès !");
-        log.info("📧 Comptes de test:");
-        log.info("   - Admin: admin@enicarthage.tn");
-        log.info("   - Évaluateurs: sami.tech@enicarthage.tn, amira.biz@enicarthage.tn");
-        log.info("   - Candidats: youssef@enicarthage.tn (Terminé), ahmed@enicarthage.tn (Round 2 actif), ali@enicarthage.tn (En attente)");
-        log.info("🔑 Mot de passe pour tous: Admin@2024 / Eval@2024 / Student@2024");
+        // ══════════════════════════════════════════════════════════════
+        // DONE
+        // ══════════════════════════════════════════════════════════════
+        log.info("✅ Jeu de données complet créé !");
+        log.info("📧 Comptes:");
+        log.info("   Admin:       admin@enicarthage.tn / Admin@2024");
+        log.info("   Éval Tech:   sami.tech@enicarthage.tn / Eval@2024 (Jury Président R2 GreenTech + R2 FinTech)");
+        log.info("   Éval Biz:    amira.biz@enicarthage.tn / Eval@2024 (Jury Président R3 GreenTech)");
+        log.info("   Éval Gen:    karim.gen@enicarthage.tn / Eval@2024 (Jury Président R1 GreenTech + R1 FinTech)");
+        log.info("   Candidats:   youssef@enicarthage.tn (COMPLETED), ahmed@enicarthage.tn (R2 fully eval'd)");
+        log.info("                nour@enicarthage.tn (R2 partial 1/2), omar@enicarthage.tn (R2 no evals)");
+        log.info("                ali@enicarthage.tn (PENDING), mariem@enicarthage.tn (REJECTED)");
+        log.info("   Mot de passe étudiants: Student@2024");
     }
 
-    private User createUser(String first, String last, String email, Role role, String specialty) {
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    private User mkUser(String first, String last, String email, Role role, String specialty) {
         if (!userRepository.existsByEmail(email)) {
             String pwd = role == Role.ADMIN ? "Admin@2024" : (role == Role.EVALUATOR ? "Eval@2024" : "Student@2024");
             return userRepository.save(User.builder()
@@ -259,6 +300,13 @@ public class DataInitializer implements CommandLineRunner {
                     .role(role).specialty(specialty).enabled(true).blocked(false).build());
         }
         return userRepository.findByEmail(email).orElseThrow();
+    }
+
+    private void eval(Application app, Project proj, User evaluator, Round round, int score, String comment) {
+        evaluationRepository.save(Evaluation.builder()
+                .application(app).project(proj).evaluator(evaluator).round(round)
+                .score(score).comment(comment).recommendation(score >= 70 ? "Accepter" : "Refuser")
+                .build());
     }
 
     private void answer(Application app, SessionQuestion question, String text) {
@@ -271,7 +319,7 @@ public class DataInitializer implements CommandLineRunner {
                 .label(label).type(type).required(required).orderIndex(idx).options(options).build();
     }
 
-    private void addQuestions(Round round, List<SessionQuestion> questions) {
+    private void addQs(Round round, List<SessionQuestion> questions) {
         questions.forEach(q -> q.setRound(round));
         questionRepository.saveAll(questions);
     }

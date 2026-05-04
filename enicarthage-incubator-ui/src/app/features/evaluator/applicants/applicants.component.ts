@@ -88,7 +88,8 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                   <button (click)="selectApp(a); $event.stopPropagation()" class="btn-ghost btn-sm px-2 py-1 text-primary-600 hover:bg-primary-50 rounded-lg" title="Voir l'historique des évaluations">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                   </button>
-                  @if (!isAdmin) {
+                  <!-- Evaluation buttons (only in evaluator space) -->
+                  @if (basePath === '/evaluator') {
                     @if (getMyEvaluation(a)) {
                       <button (click)="openEval(a); $event.stopPropagation()" 
                               [disabled]="isOut(a) || !isRoundActive(a.currentRoundId)" 
@@ -105,13 +106,13 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                       </button>
                     }
                   }
-                  @if (isAdmin) {
+                  <!-- Admin workflow buttons (only in admin space) -->
+                  @if (isAdmin && basePath === '/admin') {
                     @if (a.status === 'PENDING') {
                       <button (click)="confirmAction('accept', a)" class="btn-primary btn-sm text-[10px] px-3 py-1">Accepter</button>
                       <button (click)="confirmAction('reject', a)" class="btn-ghost btn-sm text-[10px] text-danger-500 hover:bg-danger-50 px-3 py-1">Rejeter</button>
                     }
                     @if (a.status.startsWith('ACCEPTED')) {
-                      <button (click)="confirmAction('advance', a)" class="btn-accent btn-sm text-[10px] px-3 py-1">Avancer →</button>
                       <button (click)="confirmAction('eliminate', a)" class="btn-ghost btn-sm text-[10px] text-danger-500 hover:bg-danger-50 px-3 py-1">Éliminer</button>
                     }
                   }

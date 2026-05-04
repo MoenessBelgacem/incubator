@@ -145,7 +145,12 @@ import { AuthService } from '../../../core/services/auth.service';
                       </div>
                     </div>
                   } @else {
-                    <h4 class="font-bold text-text-primary">{{ r.name }}</h4>
+                    <h4 class="font-bold text-text-primary flex items-center gap-2">
+                      {{ r.name }}
+                      @if (i === rounds.length - 1) {
+                        <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Round Final</span>
+                      }
+                    </h4>
                     <!-- Assigned Evaluators list -->
                     <div class="flex flex-wrap gap-1 mt-1.5">
                       @for (ev of r.evaluators; track ev.id) {
@@ -204,7 +209,9 @@ import { AuthService } from '../../../core/services/auth.service';
                         <span>Verrouillé</span>
                       </div>
                     }
-                    <a [routerLink]="[basePath + '/sessions', session.id, 'rounds', r.id, 'selection']" class="btn-ghost text-primary-600 btn-sm text-xs font-bold">Résultats →</a>
+                    @if (isAdmin || isJuryPresidentForRound(r)) {
+                      <a [routerLink]="[basePath + '/sessions', session.id, 'rounds', r.id, 'selection']" class="btn-ghost text-primary-600 btn-sm text-xs font-bold">Résultats →</a>
+                    }
                   }
                 </div>
               </div>
@@ -550,4 +557,9 @@ export class SessionDetailComponent implements OnInit {
 
   statusBadge(s: string) { return s === 'OPEN' ? 'badge-success' : s === 'IN_PROGRESS' ? 'badge-primary' : 'badge-slate'; }
   statusLabel(s: string) { return s === 'OPEN' ? 'Ouvert' : s === 'IN_PROGRESS' ? 'En cours' : 'Terminé'; }
+
+  isJuryPresidentForRound(r: Round): boolean {
+    const myEmail = this.auth.currentUser()?.email;
+    return !!r.juryPresident && r.juryPresident.email === myEmail;
+  }
 }

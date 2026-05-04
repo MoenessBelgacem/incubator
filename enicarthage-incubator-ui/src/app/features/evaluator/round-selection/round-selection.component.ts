@@ -72,8 +72,8 @@ import { RoundResult, SelectionOverrideRequest } from '../../../core/models/sess
             <tr class="bg-slate-50 border-b border-slate-100 text-xs font-semibold text-text-muted uppercase tracking-wider">
               <th class="p-4">Rang</th>
               <th class="p-4">Candidat</th>
+              <th class="p-4">Évaluations</th>
               <th class="p-4">Score Moyen</th>
-              <th class="p-4">Auto-Accepté</th>
               <th class="p-4">Sélection Finale</th>
               @if (isAdmin && !result.selectionFinalized) {
                 <th class="p-4">Action Admin</th>
@@ -89,16 +89,21 @@ import { RoundResult, SelectionOverrideRequest } from '../../../core/models/sess
                   <p class="text-xs text-text-muted">{{ cand.candidateEmail }}</p>
                 </td>
                 <td class="p-4">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold" [class]="cand.fullyEvaluated ? 'text-success-600' : 'text-warning-600'">
+                      {{ cand.evaluationCount }} / {{ cand.requiredEvaluators }}
+                    </span>
+                    @if (cand.fullyEvaluated) {
+                      <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    } @else {
+                      <svg class="w-4 h-4 text-warning-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    }
+                  </div>
+                </td>
+                <td class="p-4">
                   <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-sm font-bold bg-primary-50 text-primary-700">
                     {{ cand.averageScore | number:'1.1-1' }}
                   </span>
-                </td>
-                <td class="p-4">
-                  @if (cand.autoAccepted) {
-                    <span class="text-success-600 font-bold">Oui</span>
-                  } @else {
-                    <span class="text-danger-500">Non</span>
-                  }
                 </td>
                 <td class="p-4">
                   @if (cand.finalAccepted) {
@@ -135,9 +140,15 @@ import { RoundResult, SelectionOverrideRequest } from '../../../core/models/sess
 
           <div class="form-group mb-4">
             <label class="label">Décision</label>
+            @if (!overrideTarget.fullyEvaluated) {
+              <div class="mb-3 p-3 bg-warning-50 border border-warning-200 rounded-lg text-xs text-warning-800 flex items-start gap-2">
+                <svg class="w-4 h-4 text-warning-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <p>Ce candidat n'a pas été évalué par tous les évaluateurs requis ({{ overrideTarget.evaluationCount }}/{{ overrideTarget.requiredEvaluators }}). Il ne peut pas être accepté pour le round suivant.</p>
+              </div>
+            }
             <div class="flex gap-4">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="decision" [value]="true" [(ngModel)]="overrideAccepted" class="text-success-600">
+              <label class="flex items-center gap-2" [class.opacity-50]="!overrideTarget.fullyEvaluated" [class.cursor-not-allowed]="!overrideTarget.fullyEvaluated" [class.cursor-pointer]="overrideTarget.fullyEvaluated">
+                <input type="radio" name="decision" [value]="true" [(ngModel)]="overrideAccepted" class="text-success-600" [disabled]="!overrideTarget.fullyEvaluated">
                 <span class="font-bold text-success-600">Accepter</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
@@ -178,6 +189,9 @@ export class RoundSelectionComponent implements OnInit {
   overrideAccepted = false;
   overrideJustification = '';
 
+  sessionId!: number;
+  basePath = '/evaluator';
+
   constructor(
     private route: ActivatedRoute,
     private appSvc: ApplicationService,
@@ -187,6 +201,8 @@ export class RoundSelectionComponent implements OnInit {
 
   ngOnInit() {
     this.roundId = +this.route.snapshot.paramMap.get('roundId')!;
+    this.sessionId = +this.route.snapshot.paramMap.get('id')!;
+    this.basePath = this.router.url.startsWith('/admin') ? '/admin' : '/evaluator';
     const userRole = this.auth.userRole();
     this.isAdmin = userRole === 'ADMIN';
     this.loadData();
@@ -213,7 +229,7 @@ export class RoundSelectionComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['../../'], { relativeTo: this.route });
+    this.router.navigate([this.basePath, 'sessions', this.sessionId]);
   }
 
   hasOverrides(): boolean {

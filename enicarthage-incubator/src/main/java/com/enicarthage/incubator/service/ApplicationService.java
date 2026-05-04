@@ -210,6 +210,7 @@ public class ApplicationService {
     // ─── Selection lifecycle ──────────────────────────────────────────────────
 
     /** Returns ranked selection list for a round. */
+    @Transactional(readOnly = true)
     public RoundResultResponse getSelectionList(Long roundId) {
         Round round = roundRepository.findById(roundId)
                 .orElseThrow(() -> new ResourceNotFoundException("Round non trouvé"));
@@ -385,27 +386,28 @@ public class ApplicationService {
 
     private List<RoundResultResponse.CandidateRankEntry> buildRankedList(Round round, List<Application> roundApps) {
         List<RoundSelectionOverride> overrides = overrideRepository.findByRoundId(round.getId());
-        int passingCount = round.getPassingCandidatesCount() != null && round.getPassingCandidatesCount() > 0
-                ? round.getPassingCandidatesCount() : roundApps.size();
+        int requiredEvaluators = round.getEvaluators().size();
 
-        record AS(Application app, double score) {}
+        record AS(Application app, double score, int evalCount) {}
         List<AS> scores = roundApps.stream().map(app -> {
             List<Evaluation> evals = evaluationRepository.findByApplicationId(app.getId()).stream()
                     .filter(e -> e.getRound() != null && e.getRound().getId().equals(round.getId()))
                     .collect(Collectors.toList());
             double avg = 0.0;
             if (!evals.isEmpty()) avg = evals.stream().mapToDouble(Evaluation::getScore).average().orElse(0.0);
-            return new AS(app, avg);
+            return new AS(app, avg, evals.size());
         }).sorted((a, b) -> Double.compare(b.score(), a.score())).collect(Collectors.toList());
 
         List<RoundResultResponse.CandidateRankEntry> result = new ArrayList<>();
         for (int i = 0; i < scores.size(); i++) {
             AS as = scores.get(i);
-            boolean autoAccepted = i < passingCount;
+            // No auto-acceptance: admin must manually select candidates
+            boolean autoAccepted = false;
+            boolean fullyEvaluated = requiredEvaluators > 0 && as.evalCount() >= requiredEvaluators;
             final Long appId = as.app().getId();
             RoundSelectionOverride ov = overrides.stream()
                     .filter(o -> o.getApplication().getId().equals(appId)).findFirst().orElse(null);
-            boolean finalAccepted = ov != null ? ov.isAccepted() : autoAccepted;
+            boolean finalAccepted = ov != null ? ov.isAccepted() : false;
 
             result.add(RoundResultResponse.CandidateRankEntry.builder()
                     .applicationId(appId)
@@ -416,6 +418,9 @@ public class ApplicationService {
                     .rank(i + 1)
                     .autoAccepted(autoAccepted)
                     .finalAccepted(finalAccepted)
+                    .fullyEvaluated(fullyEvaluated)
+                    .evaluationCount(as.evalCount())
+                    .requiredEvaluators(requiredEvaluators)
                     .overrideJustification(ov != null ? ov.getJustification() : null)
                     .overriddenBy(ov != null ? ov.getModifiedBy().getFirstName() + " " + ov.getModifiedBy().getLastName() : null)
                     .overriddenAt(ov != null ? ov.getModifiedAt() : null)

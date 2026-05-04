@@ -361,6 +361,6 @@ export class LandingComponent implements OnInit, OnDestroy {
   getImageUrl(path: string): string {
     if (!path) return '';
     if (path.startsWith('assets/')) return path;
-    return 'http://localhost:8085/api/files/' + path;
+    return 'http://localhost:8085/uploads/' + path;
   }
 }

@@ -40,6 +40,7 @@ export interface Program {
   id: number;
   name: string;
   description?: string;
+  imagePath?: string;
   startDate?: string;
   endDate?: string;
   active: boolean;

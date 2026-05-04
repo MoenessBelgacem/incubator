@@ -33,6 +33,12 @@ public class RoundResultResponse {
         private boolean autoAccepted;
         /** Final result after possible admin override */
         private boolean finalAccepted;
+        /** Whether all required evaluators have evaluated this candidate */
+        private boolean fullyEvaluated;
+        /** Number of evaluations received */
+        private int evaluationCount;
+        /** Number of evaluators required for this round */
+        private int requiredEvaluators;
         /** Admin override justification if changed */
         private String overrideJustification;
         /** Name of admin who overrode */

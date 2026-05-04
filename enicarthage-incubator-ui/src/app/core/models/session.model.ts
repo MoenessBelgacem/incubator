@@ -75,6 +75,9 @@ export interface CandidateRankEntry {
   rank: number;
   autoAccepted: boolean;
   finalAccepted: boolean;
+  fullyEvaluated: boolean;
+  evaluationCount: number;
+  requiredEvaluators: number;
   overrideJustification?: string;
   overriddenBy?: string;
   overriddenAt?: string;
