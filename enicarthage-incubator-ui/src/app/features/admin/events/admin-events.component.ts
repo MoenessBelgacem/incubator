@@ -16,7 +16,15 @@ import { Event, EventRegistration } from '../../../core/models/index';
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       @for (e of events; track e.id) {
         <div class="card p-6 flex flex-col h-full relative overflow-hidden">
-          @if (e.registrationEnabled) {
+          <div *ngIf="e.imagePath" class="h-32 -mx-6 -mt-6 mb-4 overflow-hidden rounded-t-xl bg-slate-100 border-b border-slate-100 relative">
+            <img [src]="getImageUrl(e.imagePath)" class="w-full h-full object-cover" alt="Event image">
+            @if (e.registrationEnabled) {
+              <div class="absolute top-0 right-0 bg-primary-100 text-primary-700 text-xs font-bold px-3 py-1 rounded-bl-xl border-l border-b border-primary-200">
+                Inscriptions Ouvertes
+              </div>
+            }
+          </div>
+          @if (!e.imagePath && e.registrationEnabled) {
             <div class="absolute top-0 right-0 bg-primary-100 text-primary-700 text-xs font-bold px-3 py-1 rounded-bl-xl border-l border-b border-primary-200">
               Inscriptions Ouvertes
             </div>
@@ -66,6 +74,16 @@ import { Event, EventRegistration } from '../../../core/models/index';
           <div class="grid grid-cols-2 gap-4">
             <div class="form-group"><label class="label">Date & Heure</label><input type="datetime-local" class="input" [(ngModel)]="fd.eventDate" name="dt"></div>
             <div class="form-group"><label class="label">Lieu</label><input class="input" [(ngModel)]="fd.location" name="l" placeholder="En ligne ou adresse"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="label">Image de l'événement (Optionnelle)</label>
+            <div class="flex items-center gap-4">
+              <div *ngIf="fd.imagePath || imagePreview" class="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex-shrink-0">
+                <img [src]="imagePreview || getImageUrl(fd.imagePath)" alt="" class="w-full h-full object-cover">
+              </div>
+              <input type="file" (change)="onImageChange($event)" accept="image/*" class="input text-sm flex-1">
+            </div>
           </div>
 
           <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-6">
@@ -147,7 +165,9 @@ import { Event, EventRegistration } from '../../../core/models/index';
 })
 export class AdminEventsComponent implements OnInit {
   events: Event[] = []; showForm = false; editId: number | null = null;
-  fd: any = { title: '', description: '', location: '', eventDate: '', registrationEnabled: false, maxParticipants: null };
+  fd: any = { title: '', description: '', location: '', eventDate: '', registrationEnabled: false, maxParticipants: null, imagePath: null };
+  selectedImage: File | null = null;
+  imagePreview: string | null = null;
   
   showParticipants = false;
   selectedEvent: Event | null = null;
@@ -160,7 +180,9 @@ export class AdminEventsComponent implements OnInit {
   
   openForm() { 
     this.editId = null; 
-    this.fd = { title: '', description: '', location: '', eventDate: '', registrationEnabled: false, maxParticipants: null }; 
+    this.fd = { title: '', description: '', location: '', eventDate: '', registrationEnabled: false, maxParticipants: null, imagePath: null }; 
+    this.selectedImage = null;
+    this.imagePreview = null;
     this.showForm = true; 
   }
   
@@ -172,9 +194,22 @@ export class AdminEventsComponent implements OnInit {
       location: e.location, 
       eventDate: e.eventDate,
       registrationEnabled: e.registrationEnabled || false,
-      maxParticipants: e.maxParticipants || null
+      maxParticipants: e.maxParticipants || null,
+      imagePath: e.imagePath
     }; 
+    this.selectedImage = null;
+    this.imagePreview = null;
     this.showForm = true; 
+  }
+  
+  onImageChange(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedImage = file;
+      const reader = new FileReader();
+      reader.onload = (e: any) => this.imagePreview = e.target.result;
+      reader.readAsDataURL(file);
+    }
   }
   
   save() {
@@ -182,11 +217,20 @@ export class AdminEventsComponent implements OnInit {
     if (!this.fd.registrationEnabled) this.fd.maxParticipants = null;
     if (this.fd.maxParticipants === '') this.fd.maxParticipants = null;
 
-    const obs = this.editId ? this.svc.updateEvent(this.editId, this.fd) : this.svc.createEvent(this.fd);
+    const obs = this.editId 
+      ? this.svc.updateEvent(this.editId, this.fd, this.selectedImage || undefined) 
+      : this.svc.createEvent(this.fd, this.selectedImage || undefined);
     obs.subscribe(() => { this.showForm = false; this.load(); });
   }
   
-  del(id: number) { if (confirm('Supprimer cet événement ?')) this.svc.deleteEvent(id).subscribe(() => this.load()); }
+  del(id: number) { 
+    if (confirm('Supprimer cet événement ?')) {
+      this.svc.deleteEvent(id).subscribe({
+        next: () => this.load(),
+        error: (err) => alert('Erreur: ' + err.message)
+      });
+    }
+  }
 
   viewParticipants(e: Event) {
     this.selectedEvent = e;
@@ -204,5 +248,11 @@ export class AdminEventsComponent implements OnInit {
         this.loadingParticipants = false;
       }
     });
+  }
+
+  getImageUrl(path: string | null): string {
+    if (!path) return '';
+    if (path.startsWith('assets/')) return path;
+    return 'http://localhost:8085/api/files/' + path;
   }
 }

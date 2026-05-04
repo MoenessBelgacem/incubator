@@ -27,6 +27,7 @@ public class Program {
 
     private LocalDate startDate;
     private LocalDate endDate;
+    private String imagePath;
 
     @Column(nullable = false)
     @Builder.Default

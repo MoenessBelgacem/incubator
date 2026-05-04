@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { ProgramService } from '../../../core/services/program.service';
 import { EventService } from '../../../core/services/event.service';
 import { NewsService } from '../../../core/services/news.service';
+import { LandingSectionService, LandingSection } from '../../../core/services/landing-section.service';
 import { Program } from '../../../core/models/project.model';
 import { Event, News } from '../../../core/models/index';
 
@@ -25,7 +26,6 @@ import { Event, News } from '../../../core/models/index';
       }
       
       <div class="absolute inset-0 z-20 flex flex-col items-center justify-center pt-32 text-center px-4">
-
         <h1 class="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white font-display leading-tight max-w-5xl drop-shadow-lg">
           Catalyzing <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 to-primary-600">Innovation</span><br/>
           Growing Ideas
@@ -51,117 +51,120 @@ import { Event, News } from '../../../core/models/index';
       </div>
     </section>
 
-    <!-- Highlight: Kickoff -->
-    <section id="about" class="py-24 bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          <div>
-            <span class="text-primary-600 font-bold tracking-wider uppercase text-sm mb-2 block">November 12, 2025</span>
-            <h2 class="text-3xl sm:text-4xl font-bold text-text-primary font-display mb-6">The Official Kickoff</h2>
-            <div class="space-y-4 text-text-secondary text-lg leading-relaxed">
-              <p>
-                Today marks the official kickoff of the ENICARTHAGE Incubator, in the presence of our third- and second-year engineering students. A new chapter begins with this initiative, fully dedicated to supporting our students and researchers in transforming their ideas into real projects and impactful startups.
-              </p>
-              <p>
-                The incubator brings together the school’s three engineering departments: Computer Engineering, Electrical Engineering, and Industrial Engineering, around one shared vision: <strong>Encouraging creativity, innovation, and entrepreneurship at the heart of engineering education.</strong>
-              </p>
-              <p>
-                Through mentoring, training, and collaboration with business and industry partners, the ENICARTHAGE Incubator aims to create a dynamic ecosystem where ideas grow, talents connect, and innovation thrives. A first partnership agreement was signed with <strong>Mine’n Shine</strong> to strengthen collaboration with the socio-economic ecosystem.
-              </p>
-            </div>
-          </div>
-          <div class="relative">
-            <div class="absolute inset-0 bg-gradient-to-tr from-primary-100 to-accent-100 transform translate-x-4 translate-y-4 rounded-3xl -z-10"></div>
-            <img src="assets/images/slide1.png" alt="Kickoff Day" class="rounded-3xl shadow-xl w-full object-cover h-[500px]">
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- Dynamic Sections from API -->
+    @for (section of dynamicSections; track section.id; let i = $index) {
+      <section [id]="i === 0 ? 'about' : ''"
+               class="py-24"
+               [ngClass]="{
+                 'bg-white': section.backgroundColor === 'white',
+                 'bg-background border-y border-slate-100': section.backgroundColor === 'background',
+                 'bg-navy-900 text-white': section.backgroundColor === 'navy',
+                 'bg-gradient-to-r from-primary-600 to-primary-700 text-white': section.backgroundColor === 'gradient'
+               }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-    <!-- Highlight: First Cohort -->
-    <section class="py-24 bg-background border-y border-slate-100">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center flex-col-reverse md:flex-row-reverse">
-          <div class="order-1 md:order-2">
-            <span class="text-accent-600 font-bold tracking-wider uppercase text-sm mb-2 block">January 24, 2026</span>
-            <h2 class="text-3xl sm:text-4xl font-bold text-text-primary font-display mb-6">The First Cohort</h2>
-            <div class="space-y-4 text-text-secondary text-lg leading-relaxed">
-              <p>
-                It was a real pleasure to conclude the Final Round of the very first incubation session of the ENICARTHAGE Incubator. We were proud to see our finalists successfully complete this final stage after several months of structured evaluation, mentoring, and sustained effort.
-              </p>
-              <ul class="space-y-2 font-medium text-text-primary bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <li class="flex items-center gap-3">
-                  <svg class="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd"/></svg>
-                  First place: <strong>MAAMAR MOHAMED</strong>
-                </li>
-                <li class="flex items-center gap-3">
-                  <svg class="w-6 h-6 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd"/></svg>
-                  Second place: <strong>Moeness BELGACEM</strong>
-                </li>
-              </ul>
-              <p>
-                Following the jury’s deliberation, Mohamed Maamar will receive business and technical support in collaboration with <em>Mine'n Shine</em>. Moeness Belgacem will receive technical support with continued guidance.
-              </p>
-              <p>
-                Less than three months after the official launch, we already have an active first cohort and a clear path forward. This milestone reflects our mission to translate engineering talent into entrepreneurial impact through structured incubation, mentorship, and real-world validation.
-              </p>
+          <!-- Layout: text-left-image-right -->
+          <div *ngIf="section.layout === 'text-left-image-right'" class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div>
+              <span *ngIf="section.subtitle" class="text-primary-600 font-bold tracking-wider uppercase text-sm mb-2 block"
+                    [class.text-primary-300]="section.backgroundColor === 'navy' || section.backgroundColor === 'gradient'">
+                {{ section.subtitle }}
+              </span>
+              <h2 class="text-3xl sm:text-4xl font-bold font-display mb-6"
+                  [class.text-text-primary]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                  [class.text-white]="section.backgroundColor === 'navy' || section.backgroundColor === 'gradient'">
+                {{ section.title }}
+              </h2>
+              <div class="space-y-4 text-lg leading-relaxed whitespace-pre-line"
+                   [class.text-text-secondary]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                   [class.text-slate-300]="section.backgroundColor === 'navy'"
+                   [class.text-primary-100]="section.backgroundColor === 'gradient'">
+                {{ section.content }}
+              </div>
+            </div>
+            <div *ngIf="section.imagePath" class="relative">
+              <div class="absolute inset-0 bg-gradient-to-tr from-primary-100 to-accent-100 transform translate-x-4 translate-y-4 rounded-3xl -z-10"></div>
+              <img [src]="getImageUrl(section.imagePath)" alt="" class="rounded-3xl shadow-xl w-full object-cover h-[500px]">
             </div>
           </div>
-          <div class="order-2 md:order-1 relative">
-            <div class="absolute inset-0 bg-gradient-to-bl from-accent-100 to-primary-100 transform -translate-x-4 translate-y-4 rounded-3xl -z-10"></div>
-            <img src="assets/images/slide2.png" alt="First Cohort Winners" class="rounded-3xl shadow-xl w-full object-cover h-[500px]">
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Jury & Acknowledgments -->
-    <section class="py-24 bg-navy-900 text-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl sm:text-4xl font-bold font-display mb-16">Jury & Acknowledgments</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
-          <div class="bg-navy-800 p-8 rounded-3xl border border-navy-700">
-            <div class="mb-4">
-              <svg class="w-10 h-10 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <!-- Layout: image-left-text-right -->
+          <div *ngIf="section.layout === 'image-left-text-right'" class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div *ngIf="section.imagePath" class="relative">
+              <div class="absolute inset-0 bg-gradient-to-bl from-accent-100 to-primary-100 transform -translate-x-4 translate-y-4 rounded-3xl -z-10"></div>
+              <img [src]="getImageUrl(section.imagePath)" alt="" class="rounded-3xl shadow-xl w-full object-cover h-[500px]">
             </div>
-            <h3 class="text-2xl font-bold mb-4 text-primary-200">Our Jury</h3>
-            <p class="text-slate-300 mb-6">We sincerely thank all jury members for their availability, commitment, valuable insights, and constructive feedback.</p>
-            <div class="space-y-4 text-sm">
-              <div>
-                <strong class="text-white block mb-1">Final Round – January 24, 2026</strong>
-                <span class="text-slate-400">Imane Channoufi, Mohamed KHADRAOUI, Walid Barhoumi, Houda Ben Attia</span><br/>
-                <span class="text-slate-500">Supervisors: Nazeh Ben Ammar, Amor GUEDDANA, Besma Khiari, Monia Bouzid</span>
-              </div>
-              <div>
-                <strong class="text-white block mb-1">Screening Round – December 3, 2025</strong>
-                <span class="text-slate-400">Nazeh Ben Ammar, Houda Ben Attia, Besma Khiari, Haythem Ghazouani</span>
-              </div>
-              <div>
-                <strong class="text-white block mb-1">Ideation Round – November 19, 2025</strong>
-                <span class="text-slate-400">Nazeh Ben Ammar, Houda Ben Attia, Monia Bouzid, Amor GUEDDANA</span>
+            <div>
+              <span *ngIf="section.subtitle" class="font-bold tracking-wider uppercase text-sm mb-2 block"
+                    [class.text-accent-600]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                    [class.text-primary-300]="section.backgroundColor === 'navy' || section.backgroundColor === 'gradient'">
+                {{ section.subtitle }}
+              </span>
+              <h2 class="text-3xl sm:text-4xl font-bold font-display mb-6"
+                  [class.text-text-primary]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                  [class.text-white]="section.backgroundColor === 'navy' || section.backgroundColor === 'gradient'">
+                {{ section.title }}
+              </h2>
+              <div class="space-y-4 text-lg leading-relaxed whitespace-pre-line"
+                   [class.text-text-secondary]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                   [class.text-slate-300]="section.backgroundColor === 'navy'"
+                   [class.text-primary-100]="section.backgroundColor === 'gradient'">
+                {{ section.content }}
               </div>
             </div>
           </div>
-          <div class="bg-navy-800 p-8 rounded-3xl border border-navy-700">
-            <div class="mb-4">
-              <svg class="w-10 h-10 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+
+          <!-- Layout: centered -->
+          <div *ngIf="section.layout === 'centered'" class="text-center max-w-4xl mx-auto">
+            <span *ngIf="section.subtitle" class="font-bold tracking-wider uppercase text-sm mb-4 block"
+                  [class.text-primary-600]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                  [class.text-primary-300]="section.backgroundColor === 'navy' || section.backgroundColor === 'gradient'">
+              {{ section.subtitle }}
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-bold font-display mb-8"
+                [class.text-text-primary]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                [class.text-white]="section.backgroundColor === 'navy' || section.backgroundColor === 'gradient'">
+              {{ section.title }}
+            </h2>
+            <div *ngIf="section.imagePath" class="mb-8">
+              <img [src]="getImageUrl(section.imagePath)" alt="" class="rounded-3xl shadow-xl max-h-[400px] mx-auto object-cover">
             </div>
-            <h3 class="text-2xl font-bold mb-4 text-accent-200">Acknowledgments</h3>
-            <p class="text-slate-300 mb-6 leading-relaxed">
-              Special thanks to the founders of the ENICARTHAGE Incubator for their vision, trust, and continued commitment:
-            </p>
-            <p class="text-lg font-medium text-white leading-relaxed">
-              Besma Khiari, Monia Bouzid, Houda Ben Attia, Imen Kammoun, Khaoula ElBedoui, Walid Barhoumi, Haythem Ghazouani, Iyed Ben Slimen, and Amor GUEDDANA.
-            </p>
-            <div class="mt-8 pt-8 border-t border-navy-700">
-              <p class="text-slate-400 text-sm italic">
-                The next incubation session will be open to additional institutions within the University of Carthage, to other universities across Tunisia, and potentially to international participants. We look forward to the next incubation cycle!
-              </p>
+            <div class="text-lg leading-relaxed whitespace-pre-line"
+                 [class.text-text-secondary]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                 [class.text-slate-300]="section.backgroundColor === 'navy'"
+                 [class.text-primary-100]="section.backgroundColor === 'gradient'">
+              {{ section.content }}
+            </div>
+          </div>
+
+          <!-- Layout: two-columns -->
+          <div *ngIf="section.layout === 'two-columns'">
+            <h2 class="text-3xl sm:text-4xl font-bold font-display mb-8 text-center"
+                [class.text-text-primary]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                [class.text-white]="section.backgroundColor === 'navy' || section.backgroundColor === 'gradient'">
+              {{ section.title }}
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
+              <div class="p-8 rounded-3xl border"
+                   [class.bg-white]="section.backgroundColor === 'background'"
+                   [class.bg-slate-50]="section.backgroundColor === 'white'"
+                   [class.bg-navy-800]="section.backgroundColor === 'navy'"
+                   [class.border-slate-100]="section.backgroundColor !== 'navy'"
+                   [class.border-navy-700]="section.backgroundColor === 'navy'">
+                <div class="text-lg leading-relaxed whitespace-pre-line"
+                     [class.text-text-secondary]="section.backgroundColor === 'white' || section.backgroundColor === 'background'"
+                     [class.text-slate-300]="section.backgroundColor === 'navy'">
+                  {{ section.content }}
+                </div>
+              </div>
+              <div *ngIf="section.imagePath" class="relative">
+                <img [src]="getImageUrl(section.imagePath)" alt="" class="rounded-3xl shadow-xl w-full object-cover h-full">
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    }
 
     <!-- Events -->
     @if (events.length > 0) {
@@ -223,17 +226,62 @@ import { Event, News } from '../../../core/models/index';
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
           @for (program of programs; track program.id) {
-            <div class="card overflow-hidden group">
-              <div class="h-2 bg-gradient-to-r from-primary-500 to-accent-500"></div>
-              <div class="p-6">
-                <h3 class="text-lg font-semibold text-text-primary mb-2">{{ program.name }}</h3>
-                <p class="text-sm text-text-secondary leading-relaxed">{{ program.description || 'Programme d\\'incubation innovant pour les étudiants.' }}</p>
+            <div class="card overflow-hidden group hover:-translate-y-1 hover:shadow-xl transition-all duration-300 border border-slate-100">
+              <div class="h-3 bg-gradient-to-r from-primary-500 to-accent-500"></div>
+              <div class="p-8">
+                <div class="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center mb-6 text-primary-600">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
+                <h3 class="text-xl font-bold text-text-primary mb-3">{{ program.name }}</h3>
+                <p class="text-sm text-text-secondary leading-relaxed mb-6">{{ program.description || 'Programme d\\'incubation innovant pour les étudiants et futurs entrepreneurs.' }}</p>
+                <div class="flex items-center text-xs font-semibold text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg w-max">
+                  <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  Programme Actif
+                </div>
               </div>
             </div>
           }
         </div>
       </div>
     </section>
+
+    <!-- News -->
+    @if (newsList.length > 0) {
+      <section id="news" class="py-24 bg-white border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-16">
+            <span class="badge-primary mb-4 bg-accent-100 text-accent-700">Actualités</span>
+            <h2 class="text-3xl sm:text-4xl font-bold text-text-primary font-display">Dernières nouvelles</h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            @for (news of newsList; track news.id) {
+              <div class="card overflow-hidden group hover:shadow-xl transition-all duration-300">
+                @if (news.imagePath) {
+                  <div class="h-48 overflow-hidden">
+                    <img [src]="getImageUrl(news.imagePath)" alt="{{ news.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                  </div>
+                } @else {
+                  <div class="h-48 bg-slate-100 flex items-center justify-center">
+                    <svg class="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+                  </div>
+                }
+                <div class="p-6">
+                  <div class="flex items-center gap-2 mb-4">
+                    @if (news.category) {
+                      <span class="text-xs font-bold uppercase text-accent-600 tracking-wider">{{ news.category }}</span>
+                      <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                    }
+                    <span class="text-xs font-medium text-slate-500">{{ news.createdAt | date:'longDate' }}</span>
+                  </div>
+                  <h3 class="text-xl font-bold text-slate-800 mb-3 group-hover:text-primary-600 transition-colors">{{ news.title }}</h3>
+                  <p class="text-sm text-slate-600 line-clamp-3 leading-relaxed">{{ news.content }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+    }
 
     <!-- CTA -->
     <section class="py-24 bg-gradient-to-r from-primary-600 to-primary-700">
@@ -252,7 +300,8 @@ import { Event, News } from '../../../core/models/index';
 export class LandingComponent implements OnInit, OnDestroy {
   programs: Program[] = [];
   events: Event[] = [];
-  news: News[] = [];
+  newsList: News[] = [];
+  dynamicSections: LandingSection[] = [];
   
   // Carousel logic
   slides = [
@@ -266,7 +315,8 @@ export class LandingComponent implements OnInit, OnDestroy {
   constructor(
     private programService: ProgramService,
     private eventService: EventService,
-    private newsService: NewsService
+    private newsService: NewsService,
+    private landingSectionService: LandingSectionService
   ) {}
 
   ngOnInit() {
@@ -276,6 +326,14 @@ export class LandingComponent implements OnInit, OnDestroy {
 
     this.eventService.getPublishedEvents().subscribe(res => {
       if (res.success) this.events = res.data || [];
+    });
+
+    this.newsService.getPublishedNews().subscribe(res => {
+      if (res.success) this.newsList = res.data || [];
+    });
+
+    this.landingSectionService.getVisibleSections().subscribe(res => {
+      if (res.success) this.dynamicSections = res.data || [];
     });
     
     // Start carousel
@@ -296,8 +354,13 @@ export class LandingComponent implements OnInit, OnDestroy {
 
   setSlide(index: number) {
     this.currentSlide = index;
-    // Reset interval when manually changing slide
     clearInterval(this.slideInterval);
     this.startCarousel();
+  }
+
+  getImageUrl(path: string): string {
+    if (!path) return '';
+    if (path.startsWith('assets/')) return path;
+    return 'http://localhost:8085/api/files/' + path;
   }
 }

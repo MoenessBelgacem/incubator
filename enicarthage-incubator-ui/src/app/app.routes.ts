@@ -27,6 +27,7 @@ export const routes: Routes = [
       { path: 'projects/new', loadComponent: () => import('./features/candidate/project-submit/project-submit.component').then(m => m.ProjectSubmitComponent) },
       { path: 'sessions', loadComponent: () => import('./features/candidate/sessions-explorer/sessions-explorer.component').then(m => m.SessionsExplorerComponent) },
       { path: 'applications', loadComponent: () => import('./features/candidate/my-applications/my-applications.component').then(m => m.MyApplicationsComponent) },
+      { path: 'mentorship/:id', loadComponent: () => import('./features/candidate/project-view/candidate-project-view.component').then(m => m.CandidateProjectViewComponent) },
       { path: 'events', loadComponent: () => import('./features/candidate/events/candidate-events.component').then(m => m.CandidateEventsComponent) },
       { path: 'profile', loadComponent: () => import('./features/shared/profile/profile.component').then(m => m.ProfileComponent) }
     ]
@@ -63,7 +64,8 @@ export const routes: Routes = [
       { path: 'sessions/:id/rounds/:roundId/applicants', loadComponent: () => import('./features/evaluator/applicants/applicants.component').then(m => m.ApplicantsComponent) },
       { path: 'sessions/:id/rounds/:roundId/selection', loadComponent: () => import('./features/evaluator/round-selection/round-selection.component').then(m => m.RoundSelectionComponent) },
       { path: 'events', loadComponent: () => import('./features/admin/events/admin-events.component').then(m => m.AdminEventsComponent) },
-      { path: 'news', loadComponent: () => import('./features/admin/news/admin-news.component').then(m => m.AdminNewsComponent) }
+      { path: 'news', loadComponent: () => import('./features/admin/news/admin-news.component').then(m => m.AdminNewsComponent) },
+      { path: 'landing', loadComponent: () => import('./features/admin/landing/admin-landing.component').then(m => m.AdminLandingComponent) }
     ]
   },
 

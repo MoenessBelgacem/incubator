@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -38,15 +39,19 @@ public class ProgramController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Program>> createProgram(@RequestBody Program program) {
-        return ResponseEntity.ok(ApiResponse.success("Programme créé", programService.createProgram(program)));
+    public ResponseEntity<ApiResponse<Program>> createProgram(
+            @RequestPart("program") Program program,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        return ResponseEntity.ok(ApiResponse.success("Programme créé", programService.createProgram(program, image)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Program>> updateProgram(
-            @PathVariable Long id, @RequestBody Program program) {
-        return ResponseEntity.ok(ApiResponse.success("Programme mis à jour", programService.updateProgram(id, program)));
+            @PathVariable Long id, 
+            @RequestPart("program") Program program,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        return ResponseEntity.ok(ApiResponse.success("Programme mis à jour", programService.updateProgram(id, program, image)));
     }
 
     @DeleteMapping("/{id}")

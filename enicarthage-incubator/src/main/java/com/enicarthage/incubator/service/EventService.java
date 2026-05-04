@@ -16,6 +16,7 @@ import java.util.List;
 public class EventService {
 
     private final EventRepository eventRepository;
+    private final com.enicarthage.incubator.repository.EventRegistrationRepository eventRegistrationRepository;
     private final FileStorageService fileStorageService;
 
     public List<Event> getPublishedEvents() {
@@ -61,6 +62,7 @@ public class EventService {
 
     public void deleteEvent(Long id) {
         log.info("Suppression de l'événement id : {}", id);
+        eventRegistrationRepository.deleteByEventId(id);
         eventRepository.deleteById(id);
     }
 }

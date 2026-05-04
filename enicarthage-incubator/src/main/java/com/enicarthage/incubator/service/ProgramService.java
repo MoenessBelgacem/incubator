@@ -7,6 +7,7 @@ import com.enicarthage.incubator.repository.ProgramRepository;
 import com.enicarthage.incubator.repository.RoundRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ public class ProgramService {
 
     private final ProgramRepository programRepository;
     private final RoundRepository roundRepository;
+    private final FileStorageService fileStorageService;
 
     public List<Program> getAllPrograms() {
         return programRepository.findAll();
@@ -30,21 +32,36 @@ public class ProgramService {
                 .orElseThrow(() -> new ResourceNotFoundException("Programme introuvable : " + id));
     }
 
-    public Program createProgram(Program program) {
+    public Program createProgram(Program program, MultipartFile image) {
+        if (image != null && !image.isEmpty()) {
+            String imagePath = fileStorageService.store(image, "programs");
+            program.setImagePath(imagePath);
+        }
         return programRepository.save(program);
     }
 
-    public Program updateProgram(Long id, Program updatedData) {
+    public Program updateProgram(Long id, Program updatedData, MultipartFile image) {
         Program program = getProgramById(id);
         program.setName(updatedData.getName());
         program.setDescription(updatedData.getDescription());
         program.setStartDate(updatedData.getStartDate());
         program.setEndDate(updatedData.getEndDate());
         program.setActive(updatedData.isActive());
+        
+        if (image != null && !image.isEmpty()) {
+            String imagePath = fileStorageService.store(image, "programs");
+            program.setImagePath(imagePath);
+        }
+        
         return programRepository.save(program);
     }
 
     public void deleteProgram(Long id) {
+        Program program = getProgramById(id);
+        for (Round round : program.getRounds()) {
+            round.setProgram(null);
+            roundRepository.save(round);
+        }
         programRepository.deleteById(id);
     }
 

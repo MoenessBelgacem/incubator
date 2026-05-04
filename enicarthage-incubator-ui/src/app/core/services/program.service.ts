@@ -24,12 +24,18 @@ export class ProgramService {
     return this.http.get<ApiResponse<Program[]>>(this.API);
   }
 
-  createProgram(program: Partial<Program>): Observable<ApiResponse<Program>> {
-    return this.http.post<ApiResponse<Program>>(this.API, program);
+  createProgram(program: Partial<Program>, image?: File): Observable<ApiResponse<Program>> {
+    const formData = new FormData();
+    formData.append('program', new Blob([JSON.stringify(program)], { type: 'application/json' }));
+    if (image) formData.append('image', image);
+    return this.http.post<ApiResponse<Program>>(this.API, formData);
   }
 
-  updateProgram(id: number, program: Partial<Program>): Observable<ApiResponse<Program>> {
-    return this.http.put<ApiResponse<Program>>(`${this.API}/${id}`, program);
+  updateProgram(id: number, program: Partial<Program>, image?: File): Observable<ApiResponse<Program>> {
+    const formData = new FormData();
+    formData.append('program', new Blob([JSON.stringify(program)], { type: 'application/json' }));
+    if (image) formData.append('image', image);
+    return this.http.put<ApiResponse<Program>>(`${this.API}/${id}`, formData);
   }
 
   deleteProgram(id: number): Observable<ApiResponse<void>> {

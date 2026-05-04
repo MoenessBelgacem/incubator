@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.enicarthage.incubator.exception.EmailAlreadyExistsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import jakarta.persistence.EntityManager;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 import java.util.List;
 
@@ -19,6 +21,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final EntityManager entityManager;
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -61,8 +64,28 @@ public class UserService {
         return userRepository.findByRole(role);
     }
 
+    @Transactional
     public void deleteUser(Long id) {
         User user = getUserById(id);
+
+        entityManager.createNativeQuery("DELETE FROM round_evaluators WHERE evaluator_id = :userId")
+                .setParameter("userId", id).executeUpdate();
+
+        entityManager.createQuery("UPDATE Round r SET r.juryPresident = null WHERE r.juryPresident.id = :userId")
+                .setParameter("userId", id).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM EventRegistration e WHERE e.user.id = :userId")
+                .setParameter("userId", id).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM Notification n WHERE n.user.id = :userId")
+                .setParameter("userId", id).executeUpdate();
+
+        entityManager.createQuery("UPDATE News n SET n.author = null WHERE n.author.id = :userId")
+                .setParameter("userId", id).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM RoundSelectionOverride r WHERE r.modifiedBy.id = :userId")
+                .setParameter("userId", id).executeUpdate();
+
         userRepository.delete(user);
     }
 
